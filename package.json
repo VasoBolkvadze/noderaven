@@ -1,0 +1,31 @@
+{
+  "name": "nodeRaven",
+  "version": "0.0.1",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": ""
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/VasoBolkvadze/nodeRaven.git"
+  },
+  "keywords": [
+    "node",
+    "nodejs",
+    "raven",
+    "ravendb",
+    "module",
+    "library"
+  ],
+  "author": "Vaso Bolkvadze",
+  "license": "BSD",
+  "readmeFilename": "README.md",
+  "bugs": {
+    "url": "https://github.com/VasoBolkvadze/nodeRaven/issues"
+  },
+  "dependencies": {
+    "request": "~2.30.0",
+    "underscore": "~1.5.2"
+  }
+}
