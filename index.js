@@ -75,6 +75,47 @@ module.exports = function (host) {
 				}
 			});
 		},
+		facets: function(db, indexName, facetDoc, query, cb){
+			var url = host + "databases/" + db + "/facets/" + index + "?facetDoc=" + facetDoc + "&query=" + encodeURIComponent(query);
+			request(url, function (error, response, body) {
+				if (!error && response.statusCode === 200) {
+					var result = JSON.parse(body);
+					_.each(result.Results, function (v, k) {
+						if (_.filter(v.Values, function (x) {
+							return x.Hits > 0;
+						}).length < 2) {
+							delete result.Results[k];
+							return;
+						}
+						v.Values = _.chain(v.Values)
+							.map(function (x) {
+								var val = JSON.stringify(x.Range)
+											.replace(/^\"|\"$/gi, "")
+											.replace(/\:/gi, "\\:")
+											.replace(/\(/gi, "\\(")
+											.replace(/\)/gi, "\\)");
+								if (x.Range.indexOf(" TO ") <= 0 || x.Range.indexOf("[") !== 0) {
+									val = val.replace(/\ /gi, "\\ ");
+								}
+								val = encodeURIComponent(val);
+								x.q = k + ":" + val;
+								x.Range = x.Range
+										.replace(/^\[Dx/, "")
+										.replace(/ Dx/, " ")
+										.replace(/\]$/, "")
+										.replace(/ TO /, "-");
+								return x;
+							}).filter(function (x) {
+								return x.Hits > 0;
+							}).sortBy(function (x) {
+								return x.Range;
+							}).value();
+					});
+					cb(null, result.Results);
+				} else
+					cb(error || response.statusCode, null);
+			});
+		},
 		load: function (db, id, cb) {
 			var url = host + 'databases/' + db + '/docs/' + id;
 			request(url, function (error, response, body) {
