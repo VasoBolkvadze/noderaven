@@ -76,7 +76,7 @@ module.exports = function (host) {
 			});
 		},
 		facets: function(db, indexName, facetDoc, query, cb){
-			var url = host + "databases/" + db + "/facets/" + index + "?facetDoc=" + facetDoc + "&query=" + encodeURIComponent(query);
+			var url = host + "databases/" + db + "/facets/" + indexName + "?facetDoc=" + facetDoc + "&query=" + encodeURIComponent(query);
 			request(url, function (error, response, body) {
 				if (!error && response.statusCode === 200) {
 					var result = JSON.parse(body);
