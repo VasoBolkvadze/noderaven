@@ -1,8 +1,19 @@
-var request = require('request');
-var _ = require('underscore');
+var request = require('request'),
+	_ = require('underscore'),
+	helpers = require('./lib/helpers');
 
 module.exports = function (host) {
 	return {
+		/** Queries index and returns results in callback(err,result : object{docs,stats}).
+		 * @param {string} db
+		 * @param {string} index
+		 * @param {string} whereClause
+		 * @param {int} start
+		 * @param {int} limit
+		 * @param {Array<string>} sortBys
+		 * @param {Array<string>} fetchings
+		 * @param {Function} cb
+		 */
 		indexQuery: function (db, index, whereClause, start, limit, sortBys, fetchings, cb) {
 			if (typeof whereClause === 'function') {
 				cb = whereClause;
@@ -58,6 +69,13 @@ module.exports = function (host) {
 				}
 			});
 		},
+		/** Returns Suggestions for given query and fieldName.
+		 * @param {string} db
+		 * @param {string} index
+		 * @param {string} term
+		 * @param {string} field
+		 * @param {Function} cb
+		 */
 		suggest: function (db, index, term, field, cb) {
 			var url = host +
 				'databases/' + db +
@@ -75,13 +93,20 @@ module.exports = function (host) {
 				}
 			});
 		},
-		facets: function(db, indexName, facetDoc, query, cb){
+		/** Returns Facet Results.
+		 * @param {string} db
+		 * @param {string} indexName
+		 * @param {string} facetDoc
+		 * @param {string} query
+		 * @param {Function} cb
+		 */
+		facets: function (db, indexName, facetDoc, query, cb) {
 			var url = host + "databases/" + db + "/facets/" + indexName + "?facetDoc=" + facetDoc + "&query=" + encodeURIComponent(query);
 			request(url, function (error, response, body) {
 				if (!error && response.statusCode === 200) {
 					var result = JSON.parse(body);
 					_.each(result.Results, function (v, k) {
-						if (_.filter(v.Values, function (x) {
+						if (_.filter(v.Values,function (x) {
 							return x.Hits > 0;
 						}).length < 2) {
 							delete result.Results[k];
@@ -90,20 +115,20 @@ module.exports = function (host) {
 						v.Values = _.chain(v.Values)
 							.map(function (x) {
 								var val = JSON.stringify(x.Range)
-											.replace(/^\"|\"$/gi, "")
-											.replace(/\:/gi, "\\:")
-											.replace(/\(/gi, "\\(")
-											.replace(/\)/gi, "\\)");
+									.replace(/^\"|\"$/gi, "")
+									.replace(/\:/gi, "\\:")
+									.replace(/\(/gi, "\\(")
+									.replace(/\)/gi, "\\)");
 								if (x.Range.indexOf(" TO ") <= 0 || x.Range.indexOf("[") !== 0) {
 									val = val.replace(/\ /gi, "\\ ");
 								}
 								val = encodeURIComponent(val);
 								x.q = k + ":" + val;
 								x.Range = x.Range
-										.replace(/^\[Dx/, "")
-										.replace(/ Dx/, " ")
-										.replace(/\]$/, "")
-										.replace(/ TO /, "-");
+									.replace(/^\[Dx/, "")
+									.replace(/ Dx/, " ")
+									.replace(/\]$/, "")
+									.replace(/ TO /, "-");
 								return x;
 							}).filter(function (x) {
 								return x.Hits > 0;
@@ -116,6 +141,47 @@ module.exports = function (host) {
 					cb(error || response.statusCode, null);
 			});
 		},
+		/** Generates and returns Dynamic Report.
+		 * @param {string} db
+		 * @param {string} indexName
+		 * @param {string} whereClause
+		 * @param {string} groupBy
+		 * @param {Array<string>} fieldsToSum
+		 * @param {Function} cb
+		 */
+		dynamicAggregation: function (db, indexName, whereClause, groupBy, fieldsToSum, cb) {
+			var url = host + 'databases/' + db + '/facets/' + indexName + '?';
+			url += whereClause ? '&query=' + encodeURIComponent(whereClause) : '';
+			url += '&facetStart=0&facetPageSize=1024';
+			var facets = fieldsToSum
+				.map(function (field) {
+					return {
+						"Mode": 0,
+						"Aggregation": 16,
+						"AggregationField": field,
+						"Name": groupBy,
+						"DisplayName": field,
+						"Ranges": [],
+						"MaxResults": null,
+						"TermSortMode": 0,
+						"IncludeRemainingTerms": false
+					};
+				});
+			url+= '&facets=' + JSON.stringify(facets);
+			request(url, function (error, response, body) {
+				if (!error && response.statusCode === 200) {
+					var result = JSON.parse(body);
+					cb(null, helpers.extractDataFromDynamicAggrResponse(result));
+				} else {
+					cb(error || response.statusCode, null);
+				}
+			});
+		},
+		/** Loads document with given id.
+		 * @param {string} db
+		 * @param {string} id
+		 * @param {Function} cb
+		 */
 		load: function (db, id, cb) {
 			var url = host + 'databases/' + db + '/docs/' + id;
 			request(url, function (error, response, body) {
@@ -136,12 +202,19 @@ module.exports = function (host) {
 				}
 			});
 		},
-		update: function (db, id, doc, meta, cb) {
+		/** Overwrites given document with given id.
+		 * @param {string} db
+		 * @param {string} id
+		 * @param {Object} doc
+		 * @param {Object} metadata
+		 * @param {Function} cb
+		 */
+		update: function (db, id, doc, metadata, cb) {
 			var operations = [
 				{
 					Method: "PUT",
 					Document: doc,
-					Metadata: meta,
+					Metadata: metadata,
 					Key: id
 				}
 			];
@@ -160,7 +233,7 @@ module.exports = function (host) {
 				}
 			});
 		},
-		/** Applies patch operations to given document.
+		/** Applies patch operations to document with given id.
 		 * @param {string} db
 		 * @param {string} id
 		 * @param {Array<Object>} operations
@@ -182,6 +255,12 @@ module.exports = function (host) {
 				}
 			});
 		},
+		/** Stores given document, returns raven generated id in callback.
+		 * @param {string} db
+		 * @param {string} entityName
+		 * @param {Object} doc
+		 * @param {Function} cb
+		 */
 		store: function (db, entityName, doc, cb) {
 			request.post({
 				url: host + 'databases/' + db + '/docs',
@@ -199,5 +278,6 @@ module.exports = function (host) {
 				}
 			});
 		}
+
 	}
 };
