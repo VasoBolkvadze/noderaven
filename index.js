@@ -84,9 +84,9 @@ module.exports = function (host) {
 				'/indexes/' + index +
 				'?query=' + query +
 				'&operator=AND&pageSize=0&start=0';
-			url += sortBys.map(function (prop) {
-				return '&sort=' + prop;
-			}).join('');
+			urlPartSort = sortBys.map(function (prop) {
+									return '&sort=' + prop;
+								}).join('');
 			request(url, function (error, response, body) {
 				if (!error && response.statusCode === 200) {
 					var result = JSON.parse(body);
@@ -106,7 +106,7 @@ module.exports = function (host) {
 					for (var i = 0; i < pageCount; i++) {
 						requests.push({
 							Url: '/indexes/' + index,
-							Query: 'start=' + i * pageSize + '&pageSize=' + pageSize + '&query=' + query
+							Query: 'start=' + i * pageSize + '&pageSize=' + pageSize + '&query=' + query + urlPartSort
 						});
 					}
 					var multiGetBody = JSON.stringify(requests);
