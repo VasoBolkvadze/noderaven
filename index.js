@@ -1,6 +1,5 @@
 var request = require('request'),
-	_ = require('underscore'),
-	helpers = require('./lib/helpers');
+	_ = require('underscore');
 
 module.exports = function (host) {
 	return {
