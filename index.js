@@ -2,6 +2,8 @@ var request = require('request'),
 	_ = require('underscore');
 
 module.exports = function (host) {
+	if (host.indexOf('/', host.length - 1) == -1)
+		host += '/';
 	return {
 		/** Queries index and returns results in callback(err,result : object{docs,stats}).
 		 * @param {string} db
@@ -64,7 +66,74 @@ module.exports = function (host) {
 					cb(null, {docs: result.Results, stats: stats});
 				}
 				else {
-					cb(error || response.statusCode, null);
+					cb(error || new Error(response.statusCode), null);
+				}
+			});
+		},
+		/** Queries index and returns  all indexResults in callback(err,result : object{docs,stats}).
+		 * @param {string} db
+		 * @param {string} index
+		 * @param {string} whereClause
+		 * @param {Array<string>} sortBys
+		 * @param {Function} cb
+		 */
+		indexQueryAll: function (db, index, whereClause, sortBys, cb) {
+			var query = encodeURIComponent(whereClause)
+			var url = host +
+				'databases/' + db +
+				'/indexes/' + index +
+				'?query=' + query +
+				'&operator=AND&pageSize=0&start=0';
+			url += sortBys.map(function (prop) {
+				return '&sort=' + prop;
+			}).join('');
+			request(url, function (error, response, body) {
+				if (!error && response.statusCode === 200) {
+					var result = JSON.parse(body);
+					var pageSize = 1024;
+					var stats = _.reduce(result, function (memo, value, key) {
+						if (key !== "Results") {
+							memo[key] = value;
+						}
+						return memo;
+					}, {});
+					var totalResults = stats.TotalResults;
+					var pageCount = parseInt(totalResults / pageSize);
+					var delta = totalResults - pageCount * pageSize;
+					if (delta > 0)
+						pageCount++;
+					var requests = [];
+					for (var i = 0; i < pageCount; i++) {
+						requests.push({
+							Url: '/indexes/' + index,
+							Query: 'start=' + i * pageSize + '&pageSize=' + pageSize + '&query=' + query
+						});
+					}
+					var multiGetBody = JSON.stringify(requests);
+					var multiGetUrl = host + 'databases/' + db + '/multi_get';
+					request.post({
+							url: multiGetUrl,
+							body: multiGetBody
+						},
+						function (err, resp, multiGetResponseBody) {
+							if (!err && resp.statusCode === 200) {
+								var multiGetResponse = JSON.parse(multiGetResponseBody);
+								var results =
+									_.flatten(_.reduce(multiGetResponse
+										, function (memo, val) {
+											if (val.Result && val.Result.Results)
+												memo.push(val.Result.Results);
+											return memo;
+										}
+										, []));
+								cb(null, results);
+							} else {
+								cb(err || new Error(resp.statusCode), null);
+							}
+						});
+				}
+				else {
+					cb(error || new Error(response.statusCode), null);
 				}
 			});
 		},
@@ -88,7 +157,7 @@ module.exports = function (host) {
 					cb(null, result);
 				}
 				else {
-					cb(error || response.statusCode, null);
+					cb(error || new Error(response.statusCode), null);
 				}
 			});
 		},
@@ -137,7 +206,7 @@ module.exports = function (host) {
 					});
 					cb(null, result.Results);
 				} else
-					cb(error || response.statusCode, null);
+					cb(error || new Error(response.statusCode), null);
 			});
 		},
 		/** Generates and returns Dynamic Report.
@@ -166,13 +235,13 @@ module.exports = function (host) {
 						"IncludeRemainingTerms": false
 					};
 				});
-			url+= '&facets=' + JSON.stringify(facets);
+			url += '&facets=' + JSON.stringify(facets);
 			request(url, function (error, response, body) {
 				if (!error && response.statusCode === 200) {
 					var result = JSON.parse(body);
 					cb(null, result);
 				} else {
-					cb(error || response.statusCode, null);
+					cb(error || new Error(response.statusCode), null);
 				}
 			});
 		},
@@ -197,7 +266,7 @@ module.exports = function (host) {
 					doc['@metadata'] = meta;
 					cb(null, doc);
 				} else {
-					cb(error || response.statusCode, null);
+					cb(error || new Error(response.statusCode), null);
 				}
 			});
 		},
@@ -228,7 +297,7 @@ module.exports = function (host) {
 					var result = JSON.parse(resBody);
 					cb(null, result);
 				} else {
-					cb(error || response.statusCode, null);
+					cb(error || new Error(response.statusCode), null);
 				}
 			});
 		},
@@ -250,7 +319,7 @@ module.exports = function (host) {
 					var result = JSON.parse(resBody);
 					cb(null, result);
 				} else {
-					cb(error || response.statusCode, null);
+					cb(error || new Error(response.statusCode), null);
 				}
 			});
 		},
