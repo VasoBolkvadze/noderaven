@@ -171,7 +171,7 @@ module.exports = function (host) {
 			request(url, function (error, response, body) {
 				if (!error && response.statusCode === 200) {
 					var result = JSON.parse(body);
-					cb(null, helpers.extractDataFromDynamicAggrResponse(result));
+					cb(null, result);
 				} else {
 					cb(error || response.statusCode, null);
 				}
