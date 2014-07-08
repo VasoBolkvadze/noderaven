@@ -78,15 +78,15 @@ module.exports = function (host) {
 		 * @param {Function} cb
 		 */
 		indexQueryAll: function (db, index, whereClause, sortBys, cb) {
-			var query = encodeURIComponent(whereClause)
+			var query = encodeURIComponent(whereClause);
 			var url = host +
 				'databases/' + db +
 				'/indexes/' + index +
 				'?query=' + query +
 				'&operator=AND&pageSize=0&start=0';
-			urlPartSort = sortBys.map(function (prop) {
-									return '&sort=' + prop;
-								}).join('');
+			var urlPartSort = sortBys.map(function (prop) {
+				return '&sort=' + prop;
+			}).join('');
 			request(url, function (error, response, body) {
 				if (!error && response.statusCode === 200) {
 					var result = JSON.parse(body);
@@ -252,6 +252,7 @@ module.exports = function (host) {
 		 */
 		load: function (db, id, cb) {
 			var url = host + 'databases/' + db + '/docs/' + id;
+			console.log(url);
 			request(url, function (error, response, body) {
 				if (!error && response.statusCode === 200) {
 					var doc = JSON.parse(body);
@@ -338,14 +339,53 @@ module.exports = function (host) {
 				},
 				body: JSON.stringify(doc)
 			}, function (error, response, resBody) {
-				if (!error && response.statusCode === 201) {
+				if (!error && (response.statusCode === 201 || response.statusCode === 200)){
 					var result = JSON.parse(resBody);
 					cb(null, result);
 				} else {
 					cb(error || new Error(response.statusCode), null);
 				}
 			});
+		},
+		save: function(db,entityName,doc,done){
+			var now = new Date();
+			var month = (now.getMonth()+1).toString();
+			month = month.length > 1 ? month : "0"+month;
+			var day = now.getDate().toString();
+			day = day.length > 1 ? day : "0"+day;
+			var dateTimeNow = now.getFullYear()+'-'+month+'-'+day
+								+'T'+now.getHours()+':'+now.getMinutes()
+								+':'+now.getSeconds()+'.0000000+04:00';
+			var operations = [
+				{
+					Method: "PUT",
+					Document: doc,
+					Metadata: {
+						'Raven-Entity-Name': entityName,
+						'DateCreated': dateTimeNow
+					},
+					Key:entityName+'/'
+				}
+			];
+			request.post({
+					url: host + 'databases/' + db + '/bulk_docs',
+					headers: {
+						'Content-Type': 'application/json; charset=utf-8'
+					},
+					body: JSON.stringify(operations)
+				}
+				, function (error, response, resBody) {
+					if (!error && (response.statusCode === 201 || response.statusCode === 200)){
+						var executedOperations = JSON.parse(resBody);
+						var operation = executedOperations[0];
+						done(null, {
+							Key:operation['Key'],
+							Etag:operation['Etag']
+						});
+					} else {
+						done(error || new Error(response.statusCode), null);
+					}
+				});
 		}
-
 	}
 };
