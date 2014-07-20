@@ -357,6 +357,7 @@ module.exports = function (host) {
 								+'T'+now.getHours()+':'+now.getMinutes()
 								+':'+now.getSeconds()+'.0000000+04:00';
 			var id = doc._id || entityName+'/';
+			delete doc._id;
 			var operations = [
 				{
 					Method: "PUT",
