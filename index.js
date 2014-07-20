@@ -258,7 +258,7 @@ module.exports = function (host) {
 					var doc = JSON.parse(body);
 					var meta = _.reduce(response.headers
 						, function (memo, val, key) {
-							if (key.startsWith('raven'))
+							if (key.indexOf('raven') === 0)
 								memo[key] = val;
 							return memo;
 						}, {});
