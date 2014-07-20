@@ -356,6 +356,7 @@ module.exports = function (host) {
 			var dateTimeNow = now.getFullYear()+'-'+month+'-'+day
 								+'T'+now.getHours()+':'+now.getMinutes()
 								+':'+now.getSeconds()+'.0000000+04:00';
+			var id = doc._id || entityName+'/';
 			var operations = [
 				{
 					Method: "PUT",
@@ -364,7 +365,7 @@ module.exports = function (host) {
 						'Raven-Entity-Name': entityName,
 						'DateCreated': dateTimeNow
 					},
-					Key:entityName+'/'
+					Key:id
 				}
 			];
 			request.post({
