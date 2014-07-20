@@ -54,6 +54,7 @@ module.exports = function (host) {
 				return '&fetch=' + prop;
 			}).join('');
 			url = url + sorts + fetchs;
+			var me = this;
 			request(url, function (error, response, body) {
 				if (!error && response.statusCode === 200) {
 					var result = JSON.parse(body);
@@ -63,7 +64,10 @@ module.exports = function (host) {
 						}
 						return memo;
 					}, {});
-					cb(null, {docs: result.Results, stats: stats});
+					if (stats.IsStale)
+						setTimeout(me.indexQuery(db, index, whereClause, start, limit, sortBys, fetchings, cb), 100);
+					else
+						cb(null, {docs: result.Results, stats: stats});
 				}
 				else {
 					cb(error || new Error(response.statusCode), null);
@@ -174,7 +178,7 @@ module.exports = function (host) {
 				if (!error && response.statusCode === 200) {
 					var result = JSON.parse(body);
 					_.each(result.Results, function (v, k) {
-						if (_.filter(v.Values,function (x) {
+						if (_.filter(v.Values, function (x) {
 							return x.Hits > 0;
 						}).length < 2) {
 							delete result.Results[k];
@@ -339,7 +343,7 @@ module.exports = function (host) {
 				},
 				body: JSON.stringify(doc)
 			}, function (error, response, resBody) {
-				if (!error && (response.statusCode === 201 || response.statusCode === 200)){
+				if (!error && (response.statusCode === 201 || response.statusCode === 200)) {
 					var result = JSON.parse(resBody);
 					cb(null, result);
 				} else {
@@ -347,16 +351,16 @@ module.exports = function (host) {
 				}
 			});
 		},
-		save: function(db,entityName,doc,done){
+		save: function (db, entityName, doc, done) {
 			var now = new Date();
-			var month = (now.getMonth()+1).toString();
-			month = month.length > 1 ? month : "0"+month;
+			var month = (now.getMonth() + 1).toString();
+			month = month.length > 1 ? month : "0" + month;
 			var day = now.getDate().toString();
-			day = day.length > 1 ? day : "0"+day;
-			var dateTimeNow = now.getFullYear()+'-'+month+'-'+day
-								+'T'+now.getHours()+':'+now.getMinutes()
-								+':'+now.getSeconds()+'.0000000+04:00';
-			var id = doc._id || entityName+'/';
+			day = day.length > 1 ? day : "0" + day;
+			var dateTimeNow = now.getFullYear() + '-' + month + '-' + day
+				+ 'T' + now.getHours() + ':' + now.getMinutes()
+				+ ':' + now.getSeconds() + '.0000000+04:00';
+			var id = doc._id || entityName + '/';
 			delete doc._id;
 			var operations = [
 				{
@@ -366,7 +370,7 @@ module.exports = function (host) {
 						'Raven-Entity-Name': entityName,
 						'DateCreated': dateTimeNow
 					},
-					Key:id
+					Key: id
 				}
 			];
 			request.post({
@@ -377,12 +381,12 @@ module.exports = function (host) {
 					body: JSON.stringify(operations)
 				}
 				, function (error, response, resBody) {
-					if (!error && (response.statusCode === 201 || response.statusCode === 200)){
+					if (!error && (response.statusCode === 201 || response.statusCode === 200)) {
 						var executedOperations = JSON.parse(resBody);
 						var operation = executedOperations[0];
 						done(null, {
-							Key:operation['Key'],
-							Etag:operation['Etag']
+							Key: operation['Key'],
+							Etag: operation['Etag']
 						});
 					} else {
 						done(error || new Error(response.statusCode), null);
