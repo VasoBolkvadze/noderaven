@@ -268,6 +268,7 @@ module.exports = function (host) {
 						}, {});
 					meta['@id'] = response.headers['__document_id'];
 					meta.etag = response.headers['etag'];
+					meta.dateCreated = response.headers['DateCreated'] || response.headers['datecreated'];
 					doc['@metadata'] = meta;
 					cb(null, doc);
 				} else {
