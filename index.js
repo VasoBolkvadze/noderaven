@@ -358,9 +358,15 @@ module.exports = function (host) {
 			month = month.length > 1 ? month : "0" + month;
 			var day = now.getDate().toString();
 			day = day.length > 1 ? day : "0" + day;
+			var hours = now.getHours().toString();
+			hours = hours.length > 1 ? hours : "0" + hours;
+			var minutes = now.getMinutes().toString();
+			minutes = minutes.length > 1 ? minutes : "0" + minutes;
+			var seconds = now.getSeconds().toString();
+			seconds = seconds.length > 1 ? seconds : "0" + seconds;
 			var dateTimeNow = now.getFullYear() + '-' + month + '-' + day
-				+ 'T' + now.getHours() + ':' + now.getMinutes()
-				+ ':' + now.getSeconds() + '.0000000+04:00';
+				+ 'T' + hours + ':' + minutes
+				+ ':' + seconds + '.0000000+04:00';
 			var id = doc._id || entityName + '/';
 			delete doc._id;
 			var operations = [
