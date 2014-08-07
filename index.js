@@ -369,14 +369,21 @@ module.exports = function (host) {
 				+ ':' + seconds + '.0000000+04:00';
 			var id = doc._id || entityName + '/';
 			delete doc._id;
+			var metadata = {
+				'Raven-Entity-Name': entityName,
+				'DateCreated': dateTimeNow
+			};
+			var cstmMetadata = doc._metadata;
+			for(var k in  cstmMetadata){
+				if(cstmMetadata.hasOwnProperty(k))
+					metadata[k] = cstmMetadata[k];
+			}
+			delete doc._metadata;
 			var operations = [
 				{
 					Method: "PUT",
 					Document: doc,
-					Metadata: {
-						'Raven-Entity-Name': entityName,
-						'DateCreated': dateTimeNow
-					},
+					Metadata: metadata,
 					Key: id
 				}
 			];
