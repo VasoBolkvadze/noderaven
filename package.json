@@ -1,5 +1,5 @@
 {
-  "name": "nodeRaven",
+  "name": "noderaven",
   "version": "1.0.3",
   "description": "",
   "main": "index.js",
@@ -18,7 +18,7 @@
     "module",
     "library"
   ],
-  "author": "Vaso Bolkvadze",
+  "author": "Vaso Bolkvadze <vaso.bolkvadze@gmail.com>",
   "license": "BSD",
   "readmeFilename": "README.md",
   "bugs": {
