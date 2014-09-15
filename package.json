@@ -1,6 +1,6 @@
 {
   "name": "noderaven",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "",
   "main": "index.js",
   "scripts": {
@@ -19,7 +19,7 @@
     "library"
   ],
   "author": "Vaso Bolkvadze <vaso.bolkvadze@gmail.com>",
-  "license": "BSD",
+  "license": "MIT",
   "readmeFilename": "README.md",
   "bugs": {
     "url": "https://github.com/VasoBolkvadze/nodeRaven/issues"
