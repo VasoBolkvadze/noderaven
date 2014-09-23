@@ -252,28 +252,30 @@ module.exports = function (host) {
 		/** Loads document with given id.
 		 * @param {string} db
 		 * @param {string} id
+		 * @param {string} wantedPropsFromMetadata(OPTIONAL)
 		 * @param {Function} cb
 		 */
-		load: function (db, id, cb) {
+		load: function (db, id, wantedPropsFromMetadata, cb) {
+			if(Object.prototype.toString.call(wantedPropsFromMetadata) == '[object Function]'){
+				cb = wantedPropsFromMetadata;
+				wantedPropsFromMetadata = [];
+			}
 			var url = host + 'databases/' + db + '/docs/' + id;
-			console.log(url);
 			request(url, function (error, response, body) {
-				if (!error && response.statusCode === 200) {
-					var doc = JSON.parse(body);
-					var meta = _.reduce(response.headers
-						, function (memo, val, key) {
-							if (key.indexOf('raven') === 0)
-								memo[key] = val;
-							return memo;
-						}, {});
-					meta['@id'] = response.headers['__document_id'];
-					meta.etag = response.headers['etag'];
-					meta.dateCreated = response.headers['DateCreated'] || response.headers['datecreated'];
-					doc['@metadata'] = meta;
-					cb(null, doc);
-				} else {
-					cb(error || new Error(response.statusCode), null);
-				}
+				if(error || response.statusCode != 200)
+					return cb(error || new Error(response.statusCode));
+				var doc = JSON.parse(body);
+				var meta = _.reduce(response.headers
+					, function (memo, val, key) {
+						if (key.indexOf('raven') === 0 || wantedPropsFromMetadata.indexOf(key) != -1)
+							memo[key] = val;
+						return memo;
+					}, {});
+				meta['@id'] = response.headers['__document_id'];
+				meta.etag = response.headers['etag'];
+				meta.dateCreated = response.headers['DateCreated'] || response.headers['datecreated'];
+				doc['@metadata'] = meta;
+				cb(null, doc);
 			});
 		},
 		/** Overwrites given document with given id.
